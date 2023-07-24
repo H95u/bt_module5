@@ -20,7 +20,7 @@ const CreateStudentForm = () => {
 
 
     const validationSchema = Yup.object({
-        name: Yup.string().required("Name is required").matches(/[A-Za-z]/, "Name not contain number"),
+        name: Yup.string().required("Name is required").matches(/^[a-zA-Z]+$/, 'Name must contain only letters'),
         age: Yup.number().min(18, "Min age is 18").max(60, "Max age is 60").required("Age is required"),
         address: Yup.string().required("Address is required"),
         avgPoint: Yup.number().required("Avg Point is required").positive("Must be positive"),

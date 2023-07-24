@@ -3,37 +3,28 @@ import * as Yup from "yup";
 import axios from "axios";
 import {ErrorMessage, Field, Form, Formik} from "formik";
 import React, {useEffect, useState} from "react";
+import {getDownloadURL, ref, uploadBytesResumable} from "firebase/storage";
+import {storage} from "../firebase";
 
 export default function Update() {
     const {id} = useParams();
+
     const [provinces, setProvinces] = useState([]);
 
+    const [loading, setLoading] = useState(true);
+
     const [initialValues, setInitialValues] = useState({
-        name: "",
-        age: "",
-        address: "",
-        avgPoint: "",
-        gender: "",
-        email: "",
-        img: "",
+        name: '',
+        age: '',
+        address: '',
+        avgPoint: '',
+        gender: '',
+        email: '',
+        img: '',
     });
-    const getProvinces = () => {
-        axios.get(`http://localhost:8080/api/addresses`).then((response) => {
-            setProvinces(response.data);
-        });
-    };
-
-    useEffect(getProvinces, []);
-
-    useEffect(() => {
-        axios.get(`http://localhost:8080/api/students/${id}`).then((response) => {
-            setInitialValues(response.data);
-        });
-    }, []);
-
 
     const validationSchema = Yup.object({
-        name: Yup.string().required("Name is required").matches(/[A-Za-z]/, "Name not contain number"),
+        name: Yup.string().required("Name is required").matches(/^[a-zA-Z]+$/, 'Name must contain only letters'),
         age: Yup.number().min(18, "Min age is 18").max(60, "Max age is 60").required("Age is required"),
         address: Yup.string().required("Address is required"),
         avgPoint: Yup.number().required("Avg Point is required").positive("Must be positive"),
@@ -41,30 +32,59 @@ export default function Update() {
         email: Yup.string().email("Invalid email address").required("Email is required"),
     });
 
-    const handleSubmit = async (values) => {
-        try {
-            const formData = new FormData();
 
-            values.address = {
-                id: values.address
-            };
+    useEffect(() => {
+        axios.get(`http://localhost:8080/api/addresses`).then((response) => {
+            setProvinces(response.data);
+        })
+    }, []);
 
-            const studentDataBlob = new Blob([JSON.stringify(values)], {type: "application/json"});
-            formData.append("student", studentDataBlob);
-
-            let img = document.getElementById("img").files[0]
-            formData.append("image", img);
-
-            const response = await axios.put(`http://localhost:8080/api/students/${id}`, formData, {
-                headers: {
-                    "Content-Type": "multipart/form-data",
-                },
+    useEffect(() => {
+        axios.get(`http://localhost:8080/api/students/${id}`).then((response) => {
+            setInitialValues({
+                name: response.data.name,
+                age: response.data.age,
+                address: response.data.address,
+                avgPoint: response.data.avgPoint,
+                gender: response.data.gender,
+                email: response.data.email,
+                img: '',
             });
-            alert("Student update successfully");
-        } catch (error) {
-            alert("An error occurred while updating the student. Please try again.");
-        }
+            setLoading(false);
+        });
+    }, [id]);
+
+    const handleSubmit = async (values) => {
+
+        values.address = {
+            id: values.address
+        };
+
+        let file = document.getElementById("img").files[0]
+        const storageRef = ref(storage, `files/${file.name}`);
+        const uploadTask = uploadBytesResumable(storageRef, file);
+
+        uploadTask.on("state_changed",
+            () => {
+            },
+            (error) => {
+                alert(error);
+            },
+            () => {
+                getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+                    values.img = downloadURL;
+                    axios.put(`http://localhost:8080/api/students/${id}`, values);
+                    alert("Student update successfully");
+                });
+            }
+        );
+
+
     };
+
+    if (loading) {
+        return <div>Loading...</div>;
+    }
 
     return (
         <>
@@ -78,7 +98,7 @@ export default function Update() {
                                 Name
                             </label>
                             <div className="col-sm-10">
-                                <Field type="text" name="name" className="form-control"/>
+                                <Field type="text" name="name" className="form-control" id={"name"}/>
                                 <ErrorMessage name="name" component="div" className="text-danger"/>
                             </div>
                         </div>
@@ -87,7 +107,7 @@ export default function Update() {
                                 Age
                             </label>
                             <div className="col-sm-10">
-                                <Field type="number" name="age" className="form-control"/>
+                                <Field type="number" name="age" className="form-control" id={"age"}/>
                                 <ErrorMessage name="age" component="div" className="text-danger"/>
                             </div>
                         </div>
@@ -97,7 +117,7 @@ export default function Update() {
                                 Avg
                             </label>
                             <div className="col-sm-10">
-                                <Field type="number" name="avgPoint" className="form-control"/>
+                                <Field type="number" name="avgPoint" className="form-control" id={"avgPoint"}/>
                                 <ErrorMessage name="avgPoint" component="div" className="text-danger"/>
                             </div>
                         </div>
@@ -107,7 +127,7 @@ export default function Update() {
                                 Email
                             </label>
                             <div className="col-sm-10">
-                                <Field type="email" name="email" className="form-control"/>
+                                <Field type="email" name="email" className="form-control" id={"email"}/>
                                 <ErrorMessage name="email" component="div" className="text-danger"/>
                             </div>
                         </div>
@@ -118,7 +138,7 @@ export default function Update() {
                                 Gender
                             </label>
                             <div className="col-sm-10">
-                                <Field as="select" name="gender" className="form-select"
+                                <Field id={"gender"} as="select" name="gender" className="form-select"
                                        aria-label="Default select example">
                                     <option value="">Select gender</option>
                                     <option value="Male">Male</option>
@@ -133,10 +153,10 @@ export default function Update() {
                                 Address
                             </label>
                             <div className="col-sm-10">
-                                <Field as="select" name="address" className="form-select"
+                                <Field id={"address"} as="select" name="address" className="form-select"
                                        aria-label="Default select example">
                                     <option value="">Select address</option>
-                                    {provinces.map((item) => (
+                                    {provinces.map(item => (
                                         <option key={item.id} value={item.id}>
                                             {item.name}
                                         </option>

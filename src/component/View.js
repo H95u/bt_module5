@@ -1,10 +1,11 @@
-import {useParams} from "react-router";
+import {useNavigate, useParams} from "react-router";
 import axios from "axios";
 import {useEffect, useState} from "react";
 import {Link} from "react-router-dom";
 
 export default function View() {
     const {id} = useParams();
+    const navigate = useNavigate();
     const [student, setStudent] = useState({
         name: "",
         address: {
@@ -22,6 +23,14 @@ export default function View() {
             console.log(res.data)
         })
     }, [id])
+
+    const deleteStudent = (id) => {
+        if (window.confirm("Are you sure ?")) {
+            axios.delete(`http://localhost:8080/api/students/${id}`).then(() => {
+                navigate("/");
+            })
+        }
+    }
 
     const getAcademicPerformance = (avgPoint) => {
         if (avgPoint >= 8) {
@@ -69,7 +78,7 @@ export default function View() {
                 <tr>
                     <th><Link to={`/update/${student.id}`} className={"btn btn-secondary"}>Update</Link></th>
                     <th>
-                        <button className={"btn btn-danger"}>Delete</button>
+                        <button className={"btn btn-danger"} onClick={() => deleteStudent(student.id)}>Delete</button>
                     </th>
                 </tr>
                 <tr>
