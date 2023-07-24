@@ -8,7 +8,7 @@ export default function Home() {
     const [students, setStudents] = useState([])
     const [currentPage, setCurrentPage] = useState(0);
     const [isFirstPage, setIsFirstPage] = useState(true);
-    const [isLastPage, setIsLastPage] = useState(false);
+    const [isLastPage, setIsLastPage] = useState(true);
     const [totalPage, setTotalPage] = useState(0);
 
     const getStudents = (page) => {
@@ -67,8 +67,8 @@ export default function Home() {
                 </tbody>
             </table>
             <div style={{textAlign: "center"}}>
-                {isLastPage && <button onClick={handlePrevPage} className={"btn btn-primary"}>Previous</button>}
-                {isFirstPage && <button onClick={handleNextPage} className={"btn btn-primary"}>Next</button>}
+                {!isFirstPage && <button onClick={handlePrevPage} className={"btn btn-primary"}>Previous</button>}
+                {!isLastPage && <button onClick={handleNextPage} className={"btn btn-primary"}>Next</button>}
                 <div>
                     {currentPage + 1 + ` | ` + totalPage}
                 </div>

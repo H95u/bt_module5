@@ -2,6 +2,8 @@ import React, {useEffect, useState} from "react";
 import {ErrorMessage, Field, Form, Formik} from "formik";
 import * as Yup from "yup";
 import axios from "axios";
+import {getDownloadURL, ref, uploadBytesResumable} from "firebase/storage";
+import {storage} from "../firebase";
 
 const CreateStudentForm = () => {
     const [provinces, setProvinces] = useState([]);
@@ -18,7 +20,7 @@ const CreateStudentForm = () => {
 
 
     const validationSchema = Yup.object({
-        name: Yup.string().required("Name is required").matches(/[A-Za-z]/,"Name not contain number"),
+        name: Yup.string().required("Name is required").matches(/[A-Za-z]/, "Name not contain number"),
         age: Yup.number().min(18, "Min age is 18").max(60, "Max age is 60").required("Age is required"),
         address: Yup.string().required("Address is required"),
         avgPoint: Yup.number().required("Avg Point is required").positive("Must be positive"),
@@ -34,28 +36,31 @@ const CreateStudentForm = () => {
     useEffect(getProvinces, []);
 
     const handleSubmit = async (values) => {
-        try {
-            const formData = new FormData();
 
-            values.address = {
-                id: values.address
-            };
+        values.address = {
+            id: values.address
+        };
 
-            const studentDataBlob = new Blob([JSON.stringify(values)], {type: "application/json"});
-            formData.append("student", studentDataBlob);
+        let file = document.getElementById("img").files[0]
+        const storageRef = ref(storage, `files/${file.name}`);
+        const uploadTask = uploadBytesResumable(storageRef, file);
 
-            let img = document.getElementById("img").files[0]
-            formData.append("image", img);
+        uploadTask.on("state_changed",
+            () => {
+            },
+            (error) => {
+                alert(error);
+            },
+            () => {
+                getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+                    values.img = downloadURL;
+                    axios.post("http://localhost:8080/api/students", values);
+                    alert("Student created successfully");
+                });
+            }
+        );
 
-            const response = await axios.post("http://localhost:8080/api/students", formData, {
-                headers: {
-                    "Content-Type": "multipart/form-data",
-                },
-            });
-            alert("Student created successfully");
-        } catch (error) {
-            alert("An error occurred while creating the student. Please try again.");
-        }
+
     };
 
     return (

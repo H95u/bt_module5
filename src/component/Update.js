@@ -25,11 +25,11 @@ export default function Update() {
 
     useEffect(getProvinces, []);
 
-    useEffect(() =>
+    useEffect(() => {
         axios.get(`http://localhost:8080/api/students/${id}`).then((response) => {
-            setInitialValues(response.data)
-        }, [])
-    )
+            setInitialValues(response.data);
+        });
+    }, []);
 
 
     const validationSchema = Yup.object({
