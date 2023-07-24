@@ -1,13 +1,19 @@
-import {useParams} from "react-router";
+import {useNavigate, useParams} from "react-router";
 import * as Yup from "yup";
 import axios from "axios";
 import {ErrorMessage, Field, Form, Formik} from "formik";
 import React, {useEffect, useState} from "react";
 import {getDownloadURL, ref, uploadBytesResumable} from "firebase/storage";
 import {storage} from "../firebase";
+import {Link} from "react-router-dom";
+import Swal from "sweetalert2";
 
 export default function Update() {
     const {id} = useParams();
+
+    const navigate = useNavigate();
+
+    const [students, setStudents] = useState([]);
 
     const [provinces, setProvinces] = useState([]);
 
@@ -23,14 +29,26 @@ export default function Update() {
         img: '',
     });
 
+    useEffect(() => {
+        axios.get('http://localhost:8080/api/students').then((response) => {
+            setStudents(response.data);
+        });
+    }, []);
+
     const validationSchema = Yup.object({
         name: Yup.string().required("Name is required").matches(/^[a-zA-Z]+$/, 'Name must contain only letters'),
         age: Yup.number().min(18, "Min age is 18").max(60, "Max age is 60").required("Age is required"),
         address: Yup.string().required("Address is required"),
         avgPoint: Yup.number().required("Avg Point is required").positive("Must be positive"),
         gender: Yup.string().required("Gender is required"),
-        email: Yup.string().email("Invalid email address").required("Email is required"),
+        email: Yup.string().email("Invalid email address").required("Email is required").test('unique-email', 'Email already exists', function (value) {
+            return !checkEmailExists(value);
+        }),
     });
+
+    const checkEmailExists = (email) => {
+        return students.some((student) => student.email === email);
+    };
 
 
     useEffect(() => {
@@ -44,7 +62,7 @@ export default function Update() {
             setInitialValues({
                 name: response.data.name,
                 age: response.data.age,
-                address: response.data.address,
+                address: response.data.address.id,
                 avgPoint: response.data.avgPoint,
                 gender: response.data.gender,
                 email: response.data.email,
@@ -54,33 +72,44 @@ export default function Update() {
         });
     }, [id]);
 
-    const handleSubmit = async (values) => {
+    const handleSubmit = (values) => {
 
         values.address = {
             id: values.address
         };
 
         let file = document.getElementById("img").files[0]
-        const storageRef = ref(storage, `files/${file.name}`);
-        const uploadTask = uploadBytesResumable(storageRef, file);
-
-        uploadTask.on("state_changed",
-            () => {
-            },
-            (error) => {
-                alert(error);
-            },
-            () => {
-                getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-                    values.img = downloadURL;
-                    axios.put(`http://localhost:8080/api/students/${id}`, values);
-                    alert("Student update successfully");
-                });
-            }
-        );
-
-
+        if (file != undefined) {
+            const storageRef = ref(storage, `files/${file.name}`);
+            const uploadTask = uploadBytesResumable(storageRef, file);
+            uploadTask.on("state_changed",
+                () => {
+                },
+                (error) => {
+                    alert(error);
+                },
+                () => {
+                    getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+                        values.img = downloadURL;
+                        axios.put(`http://localhost:8080/api/students/${id}`, values).then(() => {
+                            Swal.fire('Student update successfully')
+                            backToDetail()
+                        });
+                    });
+                }
+            );
+        } else {
+            values.img = "";
+            axios.put(`http://localhost:8080/api/students/${id}`, values).then(() => {
+                Swal.fire('Student update successfully')
+                backToDetail()
+            });
+        }
     };
+    const backToDetail = () => {
+        navigate(`/view/${id}`);
+    }
+
 
     if (loading) {
         return <div>Loading...</div>;
@@ -175,7 +204,14 @@ export default function Update() {
                             <ErrorMessage name="img" component="div" className="text-danger"/>
                         </div>
 
-                        <button type="submit" className="btn btn-primary">Submit</button>
+                        <div className={"row"}>
+                            <div className={"col lg-6"}>
+                                <button type="submit" className="btn btn-primary">Submit</button>
+                            </div>
+                            <div className={"col lg-6"}>
+                                <Link to={`/view/${id}`} type="button" className="btn btn-warning">Back</Link>
+                            </div>
+                        </div>
                     </Form>
                 </Formik>
             </div>

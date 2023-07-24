@@ -4,9 +4,23 @@ import * as Yup from "yup";
 import axios from "axios";
 import {getDownloadURL, ref, uploadBytesResumable} from "firebase/storage";
 import {storage} from "../firebase";
+import {useNavigate} from "react-router";
+import Swal from "sweetalert2";
 
 const CreateStudentForm = () => {
     const [provinces, setProvinces] = useState([]);
+    const [students, setStudents] = useState([]);
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        axios.get('http://localhost:8080/api/students').then((response) => {
+            setStudents(response.data);
+        });
+    }, []);
+
+    const checkEmailExists = (email) => {
+        return students.some((student) => student.email === email);
+    };
 
     const initialValues = {
         name: "",
@@ -25,7 +39,9 @@ const CreateStudentForm = () => {
         address: Yup.string().required("Address is required"),
         avgPoint: Yup.number().required("Avg Point is required").positive("Must be positive"),
         gender: Yup.string().required("Gender is required"),
-        email: Yup.string().email("Invalid email address").required("Email is required"),
+        email: Yup.string().email("Invalid email address").required("Email is required").test('unique-email', 'Email already exists', function (value) {
+            return !checkEmailExists(value);
+        }),
     });
 
     const getProvinces = () => {
@@ -35,33 +51,44 @@ const CreateStudentForm = () => {
     };
     useEffect(getProvinces, []);
 
-    const handleSubmit = async (values) => {
+    const handleSubmit = (values) => {
 
         values.address = {
             id: values.address
         };
 
         let file = document.getElementById("img").files[0]
-        const storageRef = ref(storage, `files/${file.name}`);
-        const uploadTask = uploadBytesResumable(storageRef, file);
-
-        uploadTask.on("state_changed",
-            () => {
-            },
-            (error) => {
-                alert(error);
-            },
-            () => {
-                getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-                    values.img = downloadURL;
-                    axios.post("http://localhost:8080/api/students", values);
-                    alert("Student created successfully");
-                });
-            }
-        );
-
-
+        if (file != undefined) {
+            const storageRef = ref(storage, `files/${file.name}`);
+            const uploadTask = uploadBytesResumable(storageRef, file);
+            uploadTask.on("state_changed",
+                () => {
+                },
+                (error) => {
+                    alert(error);
+                },
+                () => {
+                    getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+                        values.img = downloadURL;
+                        axios.post("http://localhost:8080/api/students", values).then(() => {
+                            Swal.fire('Student created successfully')
+                            backToHome()
+                        });
+                    });
+                }
+            );
+        } else {
+            values.img = "https://firebasestorage.googleapis.com/v0/b/module5-img.appspot.com/o/files%2Flogo.png?alt=media&token=93d76461-8acc-405e-818a-11248e55e2d6";
+            axios.post("http://localhost:8080/api/students", values).then(() => {
+                Swal.fire('Student created successfully')
+                backToHome()
+            });
+        }
     };
+
+    const backToHome = () => {
+        navigate("/");
+    }
 
     return (
         <>
@@ -152,7 +179,14 @@ const CreateStudentForm = () => {
                             <ErrorMessage name="img" component="div" className="text-danger"/>
                         </div>
 
-                        <button type="submit" className="btn btn-primary">Submit</button>
+                        <div className={"row"}>
+                            <div className={"col-lg-6"}>
+                                <button type="submit" className="btn btn-primary">Submit</button>
+                            </div>
+                            <div className={"col-lg-6"}>
+                                <button type="button" className="btn btn-warning" onClick={backToHome}>Back</button>
+                            </div>
+                        </div>
                     </Form>
                 </Formik>
             </div>
