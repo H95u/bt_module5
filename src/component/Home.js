@@ -9,20 +9,17 @@ export default function Home() {
     const searchParams = new URLSearchParams(location.search);
     const addressId = +searchParams.get("addressId");
     const [students, setStudents] = useState([]);
-    const itemsPerPage = 10; // Số phần tử hiển thị trên mỗi trang
+    const itemsPerPage = 10;
     const [currentPage, setCurrentPage] = useState(0);
 
-    if (addressId === 0) {
-        // eslint-disable-next-line react-hooks/rules-of-hooks
-        useEffect(() => {
+    useEffect(() => {
+        if (addressId === 0) {
             getStudents();
-        }, [currentPage]);
-    } else {
-        // eslint-disable-next-line react-hooks/rules-of-hooks
-        useEffect(() => {
+        } else {
             searchStudentsByAddress(addressId);
-        }, [addressId]);
-    }
+            setCurrentPage(0)
+        }
+    }, [addressId, currentPage]);
 
     const getStudents = () => {
         axios
@@ -57,7 +54,6 @@ export default function Home() {
     const endIndex = startIndex + itemsPerPage;
 
     const currentPageData = students.slice(startIndex, endIndex);
-
 
     return (
         <div>

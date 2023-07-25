@@ -49,13 +49,13 @@ export default function View() {
 
     const getAcademicPerformance = (avgPoint) => {
         if (avgPoint >= 8) {
-            return "Loại Giỏi";
+            return "Excellent";
         } else if (avgPoint >= 6.5) {
-            return "Loại Khá";
+            return "Good";
         } else if (avgPoint >= 4.0) {
-            return "Loại TB";
+            return "Normal";
         } else {
-            return "Loại Yếu";
+            return "Bad";
         }
     };
 

@@ -38,6 +38,9 @@ body {
     overflow-y: auto;
 }
 
+table {
+    box-shadow: 0 10px 50px rgb(35, 156, 218);
+}
 
 
 

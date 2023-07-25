@@ -6,7 +6,7 @@ import Update from "./component/Update";
 import View from "./component/View";
 import "./component/css/index.css"
 import CreateStudentForm from "./component/CreateStudentForm";
-import App from "./App";
+
 
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
